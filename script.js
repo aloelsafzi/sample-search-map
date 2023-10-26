@@ -84,18 +84,19 @@ $(document).ready(() => {
     marker.setLatLng([e.latlng.lat, e.latlng.lng],{draggable:'true'})
     let text = `latitude: ${e.latlng.lat}, longitude: ${e.latlng.lng}`
     $('.geo').text(text)
-
-    marker.on('dragend', function(event){
-      marker = event.target;
-      const position = marker.getLatLng();
-      const {lat,lng} = position
-      
-      marker.setLatLng([lat,lng],{draggable:'true'}).bindPopup([lat,lng]).update();
-      text = `latitude: ${lat}, longitude: ${lng}`
-      $('.geo').text(text)
-    });
     map.addLayer(marker);
   }
+
+  marker.on('dragend', function(event){
+    marker = event.target;
+    const position = marker.getLatLng();
+    const {lat,lng} = position
+    
+    marker.setLatLng([lat,lng],{draggable:'true'}).bindPopup([lat,lng]).update();
+    text = `latitude: ${lat}, longitude: ${lng}`
+    $('.geo').text(text)
+  });
+  map.addLayer(marker);
 
   map.on('click', onMapClick);
 })
