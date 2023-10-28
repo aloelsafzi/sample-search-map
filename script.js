@@ -1,10 +1,25 @@
+ /* 
+  curl -X POST -d '{
+    "textQuery" : "Spicy Vegetarian Food in Sydney, Australia"
+  }' \
+  -H 'Content-Type: application/json' -H 'X-Goog-Api-Key: API_KEY' \
+  -H 'X-Goog-FieldMask: places.displayName,places.formattedAddress,places.priceLevel' \
+  'https://places.googleapis.com/v1/places:searchText'?
+ */
+
+
 $(document).ready(() => {
   // init 
-  const locDefault = {lat: -6.2882807, lon: 106.7582081}
-  getAddressFromLocation ([locDefault.lat,locDefault.lon])
+  const LOC_DEFAULT = { lat: -6.2882807, lon: 106.7582081 }
+  const GMAPS_SERVICE = {
+    baseUrl: 'https://places.googleapis.com/v1/places:searchText',
+    apiKey: 'AIzaSyDrKKE1nUz2AyUtomXFUSnoQyJ-OsSr5mY'
+  } 
 
-  const map = L.map('map').setView([locDefault.lat,locDefault.lon], 15);
-  let marker = L.marker([locDefault.lat,locDefault.lon],{draggable: true, autoPanOnFocus: true}).addTo(map);
+  getAddressFromLocation ([LOC_DEFAULT.lat,LOC_DEFAULT.lon])
+
+  const map = L.map('map').setView([LOC_DEFAULT.lat,LOC_DEFAULT.lon], 15);
+  let marker = L.marker([LOC_DEFAULT.lat,LOC_DEFAULT.lon],{draggable: true, autoPanOnFocus: true}).addTo(map);
 
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		maxZoom: 19,
@@ -13,24 +28,28 @@ $(document).ready(() => {
 
   const $mySelect = $(".js-example-data-ajax").select2({
     ajax: {
-      url: "https://nominatim.openstreetmap.org/search.php",
+      url:  GMAPS_SERVICE.baseUrl,
+      method: 'POST',
       dataType: 'json',
-      delay: 250,
+      delay: 500,
+      headers: {
+        'X-Goog-Api-Key': GMAPS_SERVICE.apiKey,
+        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location'
+      },
       data: function (params) {
         return {
-          q: params.term, // search term
-          polygon_geojson: 1,
-          addressdetails: 1,
-          format: 'jsonv2'
+          textQuery: params.term, // search term
+          languageCode: 'id'
         };
       },
       processResults: function (data, params) {
         const tempData = []
-        data.forEach(it => {
-          const geo = `${it.lat},${it.lon}`
-          const text = it.display_name
+        
+        data.places.forEach(it => {
+          const geo = `${it.location.latitude},${it.location.longitude}`
+          const text = it.formattedAddress
   
-          tempData.push({id: geo, text: text, title: it.name })
+          tempData.push({id: geo, text: text, title: it.displayName.text })
         })
   
         return {
@@ -80,7 +99,7 @@ $(document).ready(() => {
   });
   
   $mySelect.on('select2:clear', function (e) {    
-    const location = [locDefault.lat,locDefault.lon]
+    const location = [LOC_DEFAULT.lat,LOC_DEFAULT.lon]
     marker.setLatLng(location,{draggable:'true'}).bindPopup(location).update()
     map.flyToBounds([location])
   });
@@ -105,21 +124,26 @@ $(document).ready(() => {
 
   map.on('click', onMapClick);
 
+
+
   async function getAddressFromLocation (location) {
     const [lat, lon] = location
     $('.geo').text('Loading...')
     const response = await $.ajax({
+      header: {
+        'Accept-Language': 'id'
+      },
       method: "GET",
-      url: `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
+      url: `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${GMAPS_SERVICE.apiKey}`,
       dataType: "json"
     });
 
-    const text = response.display_name
-    const value = `${response.lat},${response.lon}`
+    const text = response.results[0].formatted_address
+    const value = `${response.results[0].geometry.location.lat},${response.results[0].geometry.location.lng}`
     const op = new Option(text, value, true, true)
     $('.js-example-data-ajax').append(op)
 
-    let textView = `latitude: ${response.lat}, longitude: ${response.lon}`
+    let textView = `latitude: ${response.results[0].geometry.location.lat}, longitude: ${response.results[0].geometry.location.lng}`
     $('.geo').text(textView)
   }  
 
